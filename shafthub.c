@@ -1,4 +1,6 @@
 /*
+shafthub.c
+ouk 202602
 format: dShaftDia +tol -tol DHubDia +tol -tol
 */
 
