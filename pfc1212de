@@ -1,0 +1,49 @@
+const int PWM_PIN = 9;   // Connect to Blue wire
+const int TACH_PIN = 2;  // Connect to Yellow wire
+
+volatile unsigned long pulseCount = 0;
+unsigned long lastMillis = 0;
+
+// Interrupt function to count fan pulses
+void countPulses() {
+  pulseCount++;
+}
+
+void setup() {
+  Serial.begin(9600);
+  
+  // Set up Tachometer pin
+  pinMode(TACH_PIN, INPUT_PULLUP);
+  attachInterrupt(digitalPinToInterrupt(TACH_PIN), countPulses, FALLING);
+  
+  // Configure Timer 1 for the required 25kHz PWM frequency on Pin 9
+  pinMode(PWM_PIN, OUTPUT);
+  TCCR1A = _BV(COM1A1) | _BV(WGM11);
+  TCCR1B = _BV(WGM13) | _BV(CS10);
+  ICR1 = 320;   // 320 represents 100% speed at 25kHz
+  
+  // Set fan speed permanently to 50% (half of 320)
+  OCR1A = 160;  
+  
+  Serial.println("Fan initialized at fixed 50% speed.");
+}
+
+void loop() {
+  // Read and print RPM once every second
+  if (millis() - lastMillis >= 1000) {
+    
+    noInterrupts();           // Pause context to copy the count safely
+    unsigned long pulses = pulseCount;
+    pulseCount = 0;           // Reset counter for the next second
+    interrupts();             // Resume tracking
+    
+    lastMillis = millis();
+    
+    // Formula: (Pulses per second * 60 seconds) / 2 pulses per rotation
+    unsigned long rpm = (pulses * 60) / 2;
+    
+    Serial.print("Fan Speed: ");
+    Serial.print(rpm);
+    Serial.println(" RPM");
+  }
+}
